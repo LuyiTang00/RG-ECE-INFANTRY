@@ -85,6 +85,10 @@
 //press the key, chassis will swing
 //底盘摇摆按键
 #define SWING_KEY KEY_PRESSED_OFFSET_CTRL
+
+//press the key, chassis will rotate
+#define ROTATE_KEY KEY_PRESSED_OFFSET_B
+
 //chassi forward, back, left, right key
 //底盘前后左右控制按键
 #define CHASSIS_FRONT_KEY KEY_PRESSED_OFFSET_W

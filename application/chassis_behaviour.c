@@ -454,51 +454,38 @@ static void chassis_infantry_follow_gimbal_yaw_control(fp32 *vx_set, fp32 *vy_se
     
     static uint8_t swing_flag = 0;
 
-    //judge if swing
-    //判断是否要摇摆
-    if (chassis_move_rc_to_vector->chassis_RC->key.v & SWING_KEY)
+		//Rotate
+		static fp32 rotate_angle = 0.0f;
+		static uint8_t rotate_flag = 0;
+		//judge if swing
+    if (chassis_move_rc_to_vector->chassis_RC->key.v & ROTATE_KEY)
     {
-        if (swing_flag == 0)
+        if (rotate_flag == 0)
         {
-            swing_flag = 1;
-            swing_time = 0.0f;
+            rotate_flag = 1;
         }
     }
     else
     {
-        swing_flag = 0;
+        rotate_flag = 0;
+    }
+		
+		if (rotate_flag)
+    {
+        rotate_angle += add_time;
     }
 
-    //judge if keyboard is controlling the chassis, if yes, reduce the max_angle
-    //判断键盘输入是不是在控制底盘运动，底盘在运动减小摇摆角度
-    if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY || chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY ||
-        chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEFT_KEY || chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RIGHT_KEY)
+		if (rotate_angle > 2 * PI)
     {
-        max_angle = SWING_MOVE_ANGLE;
+        rotate_angle -= 2 * PI;
     }
-    else
-    {
-        max_angle = SWING_NO_MOVE_ANGLE;
-    }
-    
-    if (swing_flag)
-    {
-        swing_angle = max_angle * arm_sin_f32(swing_time);
-        swing_time += add_time;
-    }
-    else
-    {
-        swing_angle = 0.0f;
-    }
-    //swing_time  range [0, 2*PI]
-    //sin函数不超过2pi
-    if (swing_time > 2 * PI)
-    {
-        swing_time -= 2 * PI;
-    }
-
-
-    *angle_set = swing_angle;
+		
+		//when both swing key and rotate key is pressed
+		//set chassis to swing
+		*angle_set = swing_angle;
+		if (rotate_flag) {
+			*angle_set = rotate_angle;
+		}
 }
 
 /**

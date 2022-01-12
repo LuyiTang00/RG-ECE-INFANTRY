@@ -44,8 +44,11 @@ void test_task(void const * argument)
     error_list_test_local = get_error_list_point();
 
     while(1)
-    {
-        error = 0;
+    {   
+		
+			buzzer_off();
+			  
+        error = 0;    
 
         //find error
         //∑¢œ÷¥ÌŒÛ
@@ -68,18 +71,23 @@ void test_task(void const * argument)
         //”–¥ÌŒÛ
         if(error)
         {
-            buzzer_warn_error(error_num+1);
+            buzzer_warn_error(error_num+1); 
+					
 					buzzer_off();
         }
 
         last_error = error;
+				
         osDelay(10);
+				
     }
+		
+	
 }
 
 
 /**
-  * @brief          make the buzzer sound
+  * @brief          make the buzzer soundF
   * @param[in]      num: the number of beeps 
   * @retval         none
   */
@@ -112,7 +120,7 @@ static void buzzer_warn_error(uint8_t num)
         }
         else if(tick < 100)
         {
-            buzzer_on(1, 30000);
+            buzzer_on(1, 30000); 
         }
         else
         {

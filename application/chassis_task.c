@@ -143,6 +143,7 @@ void chassis_task(void const *pvParameters)
     chassis_init(&chassis_move);
     //make sure all chassis motor is online,
     //判断底盘电机是否都在线
+		//
     while (toe_is_error(CHASSIS_MOTOR1_TOE) || toe_is_error(CHASSIS_MOTOR2_TOE) || toe_is_error(CHASSIS_MOTOR3_TOE) || toe_is_error(CHASSIS_MOTOR4_TOE) || toe_is_error(DBUS_TOE))
     {
         vTaskDelay(CHASSIS_CONTROL_TIME_MS);
@@ -403,15 +404,59 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
     vy_set_channel = vy_channel * -CHASSIS_VY_RC_SEN;
 
     //keyboard set speed set-point
-    //键盘控制
+    //键盘控制		
+		static fp32 linerThrottle_Front; //线性油门控制 前进
+		static fp32 linerThrottle_Back; // 线性油门控制 后退
+	  fp32 step; //油门步进(加速度)
+		static uint8_t turboMode = 0; //0常规模式  1加速模式
+		fp32 target_speed; //目标速度
+		fp32 int_speed; 
+		
+		if(chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_SHIFT) //shift全油门
+		{
+		turboMode = 1;
+			
+		}else if(chassis_move_rc_to_vector->chassis_RC->key.v & KEY_PRESSED_OFFSET_CTRL)
+		{
+		turboMode = 0;
+		}
+	  
+		if(turboMode == 1){
+    	target_speed = TURBO_SPEED;
+			step = TURBO_ACC_STEP;
+		  int_speed = TURBO_INT_SPEED;
+		}else if(turboMode == 0){
+		  target_speed = SLOW_SPEED;
+			step = SLOW_ACC_STEP;
+		  int_speed = SLOW_INT_SPEED;
+		}
+		
     if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_FRONT_KEY)
     {
-        vx_set_channel = chassis_move_rc_to_vector->vx_max_speed;
-    }
-    else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY)
+			  linerThrottle_Front = linerThrottle_Front + step;
+  
+			   if(linerThrottle_Front >= target_speed)
+				 {
+				 linerThrottle_Front = target_speed;
+				 }
+				 vx_set_channel = linerThrottle_Front;
+			
+    }else{
+		  linerThrottle_Front = int_speed;
+		}
+    
+		if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_BACK_KEY)
     {
-        vx_set_channel = chassis_move_rc_to_vector->vx_min_speed;
-    }
+			
+			 linerThrottle_Back = linerThrottle_Back - step;
+			if(linerThrottle_Back <= -target_speed)
+				{
+				linerThrottle_Back = -target_speed;
+				}
+        vx_set_channel = linerThrottle_Back;
+    }else{
+		linerThrottle_Back = -int_speed;
+		}
 
     if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_LEFT_KEY)
     {
@@ -420,7 +465,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
     else if (chassis_move_rc_to_vector->chassis_RC->key.v & CHASSIS_RIGHT_KEY)
     {
         vy_set_channel = chassis_move_rc_to_vector->vy_min_speed;
-    }
+    } 
 
     //first order low-pass replace ramp function, calculate chassis speed set-point to improve control performance
     //一阶低通滤波代替斜波作为底盘速度输入
@@ -451,6 +496,7 @@ void chassis_rc_to_control_vector(fp32 *vx_set, fp32 *vy_set, chassis_move_t *ch
   * @param[out]     chassis_move_update:"chassis_move"变量指针.
   * @retval         none
   */
+
 static void chassis_set_contorl(chassis_move_t *chassis_move_control)
 {
 
@@ -458,7 +504,6 @@ static void chassis_set_contorl(chassis_move_t *chassis_move_control)
     {
         return;
     }
-
 
     fp32 vx_set = 0.0f, vy_set = 0.0f, angle_set = 0.0f;
     //get three control set-point, 获取三个控制设置值
@@ -480,8 +525,14 @@ static void chassis_set_contorl(chassis_move_t *chassis_move_control)
         chassis_move_control->chassis_relative_angle_set = rad_format(angle_set);
         //calculate ratation speed
         //计算旋转PID角速度
+			if(swing_flag == 0){
         chassis_move_control->wz_set = -PID_calc(&chassis_move_control->chassis_angle_pid, chassis_move_control->chassis_yaw_motor->relative_angle, chassis_move_control->chassis_relative_angle_set);
-        //speed limit
+			}else if(swing_flag ==1){
+				chassis_move_control->wz_set = SPIN_SPEED;
+			}
+
+			
+			  //speed limit
         //速度限幅
         chassis_move_control->vx_set = fp32_constrain(chassis_move_control->vx_set, chassis_move_control->vx_min_speed, chassis_move_control->vx_max_speed);
         chassis_move_control->vy_set = fp32_constrain(chassis_move_control->vy_set, chassis_move_control->vy_min_speed, chassis_move_control->vy_max_speed);

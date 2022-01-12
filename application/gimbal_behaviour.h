@@ -149,4 +149,9 @@ extern bool_t gimbal_cmd_to_chassis_stop(void);
   */
 extern bool_t gimbal_cmd_to_shoot_stop(void);
 
+
+extern fp32 yawMove;
+extern fp32 pitchMove; 
+extern uint8_t autoAimFlag; //自动瞄准开关状态 0关 1自动瞄准
+
 #endif

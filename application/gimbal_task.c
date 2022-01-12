@@ -330,6 +330,7 @@ void gimbal_task(void const *pvParameters)
     {
         vTaskDelay(GIMBAL_CONTROL_TIME);
         gimbal_feedback_update(&gimbal_control);             //云台数据反馈
+				break;
     }
 
     while (1)
@@ -627,6 +628,15 @@ const gimbal_motor_t *get_pitch_motor_point(void)
     return &gimbal_control.gimbal_pitch_motor;
 }
 
+
+/** PR test 2021/4/3, 云台指针
+*
+*/
+gimbal_control_t *get_gimbal_pointer(void)
+ {    
+	   gimbal_control_t * sp= &gimbal_control;
+     return sp;
+ }
 /**
   * @brief          "gimbal_control" valiable initialization, include pid initialization, remote control data point initialization, gimbal motors
   *                 data point initialization, and gyro sensor angle point initialization.
@@ -883,7 +893,7 @@ static void gimbal_set_control(gimbal_control_t *set_control)
   */
 static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add)
 {
-    static fp32 bias_angle;
+//    static fp32 bias_angle;
     static fp32 angle_set;
     if (gimbal_motor == NULL)
     {
@@ -891,9 +901,10 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add)
     }
     //now angle error
     //当前控制误差角度
-    bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
+ //   bias_angle = rad_format(gimbal_motor->absolute_angle_set - gimbal_motor->absolute_angle);
     //relative angle + angle error + add_angle > max_relative angle
     //云台相对角度+ 误差角度 + 新增角度 如果大于 最大机械角度
+		/*
     if (gimbal_motor->relative_angle + bias_angle + add > gimbal_motor->max_relative_angle)
     {
         //如果是往最大机械角度控制方向
@@ -911,6 +922,7 @@ static void gimbal_absolute_angle_limit(gimbal_motor_t *gimbal_motor, fp32 add)
             add = gimbal_motor->min_relative_angle - gimbal_motor->relative_angle - bias_angle;
         }
     }
+		*/
     angle_set = gimbal_motor->absolute_angle_set;
     gimbal_motor->absolute_angle_set = rad_format(angle_set + add);
 }

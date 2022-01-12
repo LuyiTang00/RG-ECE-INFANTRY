@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<JScopeProject>
+    <FileVersion major="1" minor="1" />
+    <Project>
+        <Configuration>
+            <JLink>
+                <Options Connection="1" IsRTTSession="0" IsRTTWithTimeStamp="1" SamplingPeriod="1000" SerialNo="0" JTAG_IRPre="0" JTAG_DRPre="0" IP="" TargetDevice="STM32F407IG" TargetInterface="SWD" InterfaceSpeed="12000" />
+            </JLink>
+            <ElfFile Name="C:\Users\zelin\Desktop\RG Infantry auto aim\MDK-ARM\standard_tpye_c\standard_tpye_c.axf" />
+            <Scope>
+                <Options TimeResolutionUs="1000000" />
+            </Scope>
+        </Configuration>
+        <Windows>
+            <Graph Show="1" />
+            <Watch Show="1" />
+        </Windows>
+        <SelectedSymbols>
+            <Symbol>
+                <Options Name="Debug_fricW_speed" Address="0x00000000" Type="ushort" TypeID="7" Size="2" GraphColorRed="255" GraphColorGreen="0" GraphColorBlue="0" YMinSampled="0" YMaxSampled="59480" YAvgSampled="59185.7" Offset="4" ShowInGraph="1" ACCoupling="0" YOffset="-40" IsAutoConfig="0" YResolution="20000" MaxValue="65535" File="" Scope="1" DrawStyle="0" />
+            </Symbol>
+        </SelectedSymbols>
+    </Project>
+</JScopeProject>

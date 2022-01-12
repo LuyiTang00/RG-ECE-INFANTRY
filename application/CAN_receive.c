@@ -46,6 +46,12 @@ motor data,  0:chassis motor1 3508;1:chassis motor3 3508;2:chassis motor3 3508;3
 4:yaw云台电机 6020电机; 5:pitch云台电机 6020电机; 6:拨弹电机 2006电机*/
 static motor_measure_t motor_chassis[7];
 
+/*
+		绑定在CAN2上的电机 数组
+		
+		*/
+static motor_measure_t motor_CAN2Bus[7];
+
 static CAN_TxHeaderTypeDef  gimbal_tx_message;
 static uint8_t              gimbal_can_send_data[8];
 static CAN_TxHeaderTypeDef  chassis_tx_message;
@@ -53,6 +59,7 @@ static uint8_t              chassis_can_send_data[8];
 
 /**
   * @brief          hal CAN fifo call back, receive motor data
+		SZL 12-30-2021添加 FIFO0 仅 CAN1使用
   * @param[in]      hcan, the point to CAN handle
   * @retval         none
   */
@@ -65,34 +72,98 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     CAN_RxHeaderTypeDef rx_header;
     uint8_t rx_data[8];
+		//uint8_t temp = 0;
+	
+		if(hcan == &hcan2)
+		{
+			//temp = 1;
+			return;
+		}
 
-    HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
+		if(hcan == &hcan1)
+		{
+			HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
 
-    switch (rx_header.StdId)
-    {
-        case CAN_3508_M1_ID:
-        case CAN_3508_M2_ID:
-        case CAN_3508_M3_ID:
-        case CAN_3508_M4_ID:
-        case CAN_YAW_MOTOR_ID:
-        case CAN_PIT_MOTOR_ID:
-        case CAN_TRIGGER_MOTOR_ID:
-        {
-            static uint8_t i = 0;
-            //get motor id
-            i = rx_header.StdId - CAN_3508_M1_ID;
-            get_motor_measure(&motor_chassis[i], rx_data);
-            detect_hook(CHASSIS_MOTOR1_TOE + i);
-            break;
-        }
+			switch (rx_header.StdId)
+			{
+					case CAN_3508_M1_ID:
+					case CAN_3508_M2_ID:
+					case CAN_3508_M3_ID:
+					case CAN_3508_M4_ID:
+					case CAN_YAW_MOTOR_ID:
+					case CAN_PIT_MOTOR_ID:
+					case CAN_TRIGGER_MOTOR_ID:
+					{
+							static uint8_t i = 0;
+							//get motor id
+							i = rx_header.StdId - CAN_3508_M1_ID;
+							get_motor_measure(&motor_chassis[i], rx_data);
+							detect_hook(CHASSIS_MOTOR1_TOE + i);
+							break;
+					}
 
-        default:
-        {
-            break;
-        }
-    }
+					default:
+					{
+							break;
+					}
+			}
+		}
 }
 
+/**
+  * @brief          hal CAN fifo1 call back, receive motor data
+  * @param[in]      hcan, the point to CAN handle
+  * @retval         none
+  */
+/**
+  * @brief          hal库CAN fifo回调函数,接收电机数据 在bsp_can.c中 将fifo1 与 CAN2绑定到一起了
+	SZL 12-30-2021添加 FIFO1 仅 CAN2使用
+  * @param[in]      hcan:CAN句柄指针
+  * @retval         none
+  */
+void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
+    CAN_RxHeaderTypeDef rx_header;
+    uint8_t rx_data[8];
+		//uint8_t temp = 0;
+	
+		if(hcan == &hcan1)
+		{
+			//temp = 1;
+			return;
+		}
+		
+		if(hcan == &hcan2)
+		{
+			HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &rx_header, rx_data);
+
+			switch (rx_header.StdId)
+			{
+					case CAN_3508_M1_ID:
+					case CAN_3508_M2_ID:
+					case CAN_YAW_MOTOR_ID:
+					case CAN_PIT_MOTOR_ID:
+					case CAN_TRIGGER_MOTOR_ID:
+					//case 0x207:
+					case 0x208:
+					{
+							static uint8_t i = 0;
+							//get motor id
+							i = rx_header.StdId - CAN_3508_M1_ID;
+							get_motor_measure(&motor_CAN2Bus[i], rx_data);
+							if (i != 7) {
+								detect_hook(CHASSIS_MOTOR1_TOE + i);
+							}
+							break;
+					}
+
+					default:
+					{
+							break;
+					}
+			}
+		}	
+}
 
 
 /**
@@ -229,8 +300,26 @@ void CAN_cmd_chassis(int16_t motor1, int16_t motor2, int16_t motor3, int16_t mot
   * @param[in]      motor2: (0x209) 3508电机控制电流, 范围 [-16384,16384]
   * @retval         none
   */
+/*
+12-30-2021 SZL
+发送电机控制电流 0x201LEFT 0x202RIGHT 
+*/
 void CAN_cmd_friction_wheel(int16_t motor1, int16_t motor2){
 	
+		uint32_t send_mail_box;
+    gimbal_tx_message.StdId = CAN_CHASSIS_ALL_ID;
+    gimbal_tx_message.IDE = CAN_ID_STD;
+    gimbal_tx_message.RTR = CAN_RTR_DATA;
+    gimbal_tx_message.DLC = 0x08;
+    gimbal_can_send_data[0] = (motor1 >> 8);//(m1>>8)
+    gimbal_can_send_data[1] = motor1;//m1
+    gimbal_can_send_data[2] = (motor2 >> 8);
+    gimbal_can_send_data[3] = motor2;
+    gimbal_can_send_data[4] = 0; //(m3>>8);//(m3>>8)
+    gimbal_can_send_data[5] = 0; //m3;//m3
+    gimbal_can_send_data[6] = 0; //(m4>>8);//(m4>>8)
+    gimbal_can_send_data[7] = 0; //m4;//m4
+    HAL_CAN_AddTxMessage(&GIMBAL_CAN, &gimbal_tx_message, gimbal_can_send_data, &send_mail_box);
 }
 /**
   * @brief          return the yaw 6020 motor data point
@@ -259,7 +348,8 @@ const motor_measure_t *get_yaw_gimbal_motor_measure_point(void)
   */
 const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
 {
-    return &motor_chassis[5];
+    //return &motor_chassis[5];//SZL修改 1-6-2021 由于电机在CAN 2 上 目前解包到motor_CAN2Bus数组中
+		return &motor_CAN2Bus[5];
 }
 
 
@@ -275,7 +365,8 @@ const motor_measure_t *get_pitch_gimbal_motor_measure_point(void)
   */
 const motor_measure_t *get_trigger_motor_measure_point(void)
 {
-    return &motor_chassis[6];
+    return &motor_chassis[6];//SZL修改 1-6-2021 由于电机在CAN 2 上 目前解包到motor_CAN2Bus数组中
+		//return &motor_CAN2Bus[6];
 }
 
 
@@ -293,3 +384,116 @@ const motor_measure_t *get_chassis_motor_measure_point(uint8_t i)
 {
     return &motor_chassis[(i & 0x03)];
 }
+
+/*
+SZL 12-30-2021 添加 M3508 摩擦轮 shooter 两个 left_friction_motor_measure right_friction_motor_measure
+*/
+const motor_measure_t *get_left_friction_motor_measure_point(void)
+{
+	return &motor_CAN2Bus[0];
+}
+const motor_measure_t *get_right_friction_motor_measure_point(void)
+{
+	return &motor_CAN2Bus[1];
+}
+
+/*
+SZL-1-6-2021
+CAN1 FIFO 0 中断向量的 callback 用户函数
+记得注释掉void CAN1_RX0_IRQHandler(void)中的HAL_CAN_IRQHandler(..)
+*/
+void userCallback_CAN1_FIFO0_IT(CAN_HandleTypeDef *hcan)
+{
+		CAN_RxHeaderTypeDef rx_header;
+    uint8_t rx_data[8];
+		//uint8_t temp = 0;
+	
+		if(hcan == &hcan2)
+		{
+			//temp = 1;
+			return;
+		}
+
+		if(hcan == &hcan1)
+		{
+			HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_header, rx_data);
+
+			switch (rx_header.StdId)
+			{
+					case CAN_3508_M1_ID:
+					case CAN_3508_M2_ID:
+					case CAN_3508_M3_ID:
+					case CAN_3508_M4_ID:
+					case CAN_YAW_MOTOR_ID:
+					case CAN_PIT_MOTOR_ID:
+					case CAN_TRIGGER_MOTOR_ID:
+					{
+							static uint8_t i = 0;
+							//get motor id
+							i = rx_header.StdId - CAN_3508_M1_ID;
+							get_motor_measure(&motor_chassis[i], rx_data);
+							detect_hook(CHASSIS_MOTOR1_TOE + i);
+							break;
+					}
+
+					default:
+					{
+							break;
+					}
+			}
+		}
+	
+	
+}
+
+/*
+SZL-1-6-2021
+CAN2 FIFO 1 中断向量的 callback 用户函数
+记得注释掉void CAN2_RX1_IRQHandler(void)中的HAL_CAN_IRQHandler(..)
+*/
+void userCallback_CAN2_FIFO1_IT(CAN_HandleTypeDef *hcan)
+{
+		CAN_RxHeaderTypeDef rx_header;
+    uint8_t rx_data[8];
+		//uint8_t temp = 0;
+	
+		if(hcan == &hcan1)
+		{
+			//temp = 1;
+			return;
+		}
+		
+		if(hcan == &hcan2)
+		{
+			HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &rx_header, rx_data);
+
+			switch (rx_header.StdId)
+			{
+					case CAN_3508_M1_ID:
+					case CAN_3508_M2_ID:
+					case CAN_YAW_MOTOR_ID:
+					case CAN_PIT_MOTOR_ID:
+					case CAN_TRIGGER_MOTOR_ID:
+					//case 0x207:
+					case 0x208:
+					{
+							static uint8_t i = 0;
+							//get motor id
+							i = rx_header.StdId - CAN_3508_M1_ID;
+							get_motor_measure(&motor_CAN2Bus[i], rx_data);
+							if (i != 7) {
+								detect_hook(CHASSIS_MOTOR1_TOE + i);
+							}
+							break;
+					}
+
+					default:
+					{
+							break;
+					}
+			}
+		}	
+	
+}
+
+

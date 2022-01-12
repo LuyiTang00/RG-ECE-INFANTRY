@@ -24,7 +24,7 @@
 #include "arm_math.h"
 #include "detect_task.h"
 
-#define POWER_LIMIT         80.0f
+#define POWER_LIMIT         500.0f//500
 #define WARNING_POWER       40.0f   
 #define WARNING_POWER_BUFF  50.0f   
 
@@ -42,13 +42,15 @@
   * @param[in]      chassis_power_control: 底盘数据
   * @retval         none
   */
+	
+uint8_t robot_id = 0 ; //test
 void chassis_power_control(chassis_move_t *chassis_power_control)
 {
     fp32 chassis_power = 0.0f;
     fp32 chassis_power_buffer = 0.0f;
     fp32 total_current_limit = 0.0f;
     fp32 total_current = 0.0f;
-    uint8_t robot_id = get_robot_id();
+    robot_id = get_robot_id();
     if(toe_is_error(REFEREE_TOE))
     {
         total_current_limit = NO_JUDGE_TOTAL_CURRENT_LIMIT;
@@ -73,7 +75,7 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
             }
             else
             {
-                //only left 10% of WARNING_POWER_BUFF
+                //only left 10% of WARNING_POWER_BUFF//小于5的时候都用5来限制幅度
                 power_scale = 5.0f / WARNING_POWER_BUFF;
             }
             //scale down
@@ -124,7 +126,7 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
     }
     
 
-    if(total_current > total_current_limit)
+   if(total_current > total_current_limit)
     {
         fp32 current_scale = total_current_limit / total_current;
         chassis_power_control->motor_speed_pid[0].out*=current_scale;
@@ -132,4 +134,5 @@ void chassis_power_control(chassis_move_t *chassis_power_control)
         chassis_power_control->motor_speed_pid[2].out*=current_scale;
         chassis_power_control->motor_speed_pid[3].out*=current_scale;
     }
+
 }

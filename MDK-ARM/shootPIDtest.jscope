@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<JScopeProject>
+    <FileVersion major="1" minor="1" />
+    <Project>
+        <Configuration>
+            <JLink>
+                <Options Connection="1" IsRTTSession="0" IsRTTWithTimeStamp="1" SamplingPeriod="100" SerialNo="0" JTAG_IRPre="0" JTAG_DRPre="0" IP="" TargetDevice="STM32F407IG" TargetInterface="SWD" InterfaceSpeed="12000" />
+            </JLink>
+            <ElfFile Name="C:\Users\Shen\Desktop\RG Infantry auto aim\MDK-ARM\standard_tpye_c\standard_tpye_c.axf" />
+            <DataFile Name="C:\Users\Shen\Desktop\ShooterData.csv" />
+            <RawFile Name="" />
+            <Scope>
+                <Options TimeResolutionUs="1000000" />
+            </Scope>
+        </Configuration>
+        <Windows>
+            <Graph Show="1" />
+            <Watch Show="1" />
+        </Windows>
+        <SelectedSymbols>
+            <Symbol>
+                <Options Name="temp_rpm_left" Address="0x20000284" Type="short" TypeID="11" Size="2" GraphColorRed="0" GraphColorGreen="0" GraphColorBlue="255" YMinSampled="-4405" YMaxSampled="8192" YAvgSampled="-3772.32" Offset="4" ShowInGraph="1" ACCoupling="0" YOffset="7" IsAutoConfig="0" YResolution="500" MaxValue="32767" File="..\application\shoot.c" Scope="0" DrawStyle="0" />
+            </Symbol>
+            <Symbol>
+                <Options Name="temp_rpm_right" Address="0x20000286" Type="short" TypeID="11" Size="2" GraphColorRed="255" GraphColorGreen="0" GraphColorBlue="0" YMinSampled="0" YMaxSampled="8192" YAvgSampled="3773.07" Offset="6" ShowInGraph="1" ACCoupling="0" YOffset="-7" IsAutoConfig="0" YResolution="500" MaxValue="32767" File="..\application\shoot.c" Scope="0" DrawStyle="0" />
+            </Symbol>
+        </SelectedSymbols>
+    </Project>
+</JScopeProject>

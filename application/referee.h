@@ -91,6 +91,11 @@ typedef __packed struct //0x0201
     uint8_t robot_level;
     uint16_t remain_HP;
     uint16_t max_HP;
+		/*
+		//-------------ÓëÃèÊö²»·û
+		https://rm-static.djicdn.com/tem/17348/RoboMaster%202021%20%E8%A3%81%E5%88%A4%E7%B3%BB%E7%BB%9F%E4%B8%B2%E5%8F%A3%E5%8D%8F%E8%AE%AE%E9%99%84%E5%BD%95%20V1.2%EF%BC%8820210430%EF%BC%89.pdf
+		
+		*/
     uint16_t shooter_heat0_cooling_rate;
     uint16_t shooter_heat0_cooling_limit;
     uint16_t shooter_heat1_cooling_rate;
@@ -172,7 +177,6 @@ typedef __packed struct
 {
     uint8_t data[32];
 } ext_download_stream_data_t;
-
 
 
 extern void init_referee_struct_data(void);

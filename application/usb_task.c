@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "string.h"
-#include "referee.h"
+
 #include "detect_task.h"
 #include "voltage_task.h"
 
@@ -60,8 +60,6 @@ gyro sensor:%s\r\n\
 accel sensor:%s\r\n\
 mag sensor:%s\r\n\
 referee usart:%s\r\n\
-robot level:%d \r\n\
-robot id:%d \r\n\
 ******************************\r\n",
             get_battery_percentage(), 
             status[error_list_usb_local[DBUS_TOE].error_exist],
@@ -75,10 +73,8 @@ robot id:%d \r\n\
             status[error_list_usb_local[BOARD_GYRO_TOE].error_exist],
             status[error_list_usb_local[BOARD_ACCEL_TOE].error_exist],
             status[error_list_usb_local[BOARD_MAG_TOE].error_exist],
-            status[error_list_usb_local[REFEREE_TOE].error_exist]),
-						get_robot_level(),
-						get_robot_id();
-						
+            status[error_list_usb_local[REFEREE_TOE].error_exist]);
+
     }
 
 }

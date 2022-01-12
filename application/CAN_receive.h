@@ -22,6 +22,7 @@
 #define CAN_RECEIVE_H
 
 #include "struct_typedef.h"
+//#include "stm32f4xx_hal_can.h"
 
 #define CHASSIS_CAN hcan1
 #define GIMBAL_CAN hcan2
@@ -170,5 +171,21 @@ extern const motor_measure_t *get_trigger_motor_measure_point(void);
   */
 extern const motor_measure_t *get_chassis_motor_measure_point(uint8_t i);
 
+/*
+SZL 12-30-2021 添加 M3508 摩擦轮 shooter 两个 left_friction_motor_measure right_friction_motor_measure
+声明
+*/
+extern const motor_measure_t *get_left_friction_motor_measure_point(void);
+
+extern const motor_measure_t *get_right_friction_motor_measure_point(void);
+
+/*
+SZL-1-6-2021
+CAN1 FIFO 0 中断向量的 callback 用户函数
+CAN2 FIFO 1 中断向量的 callback 用户函数
+*/
+//extern void userCallback_CAN1_FIFO0_IT(CAN_HandleTypeDef *hcan);
+
+//extern void userCallback_CAN2_FIFO1_IT(CAN_HandleTypeDef *hcan);
 
 #endif

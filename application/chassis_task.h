@@ -1,3 +1,4 @@
+
 /**
   ****************************(C) COPYRIGHT 2019 DJI****************************
   * @file       chassis.c/h
@@ -80,15 +81,11 @@
 //底盘任务控制频率，尚未使用这个宏
 #define CHASSIS_CONTROL_FREQUENCE 500.0f
 //chassis 3508 max motor control current
-//底盘3508最大can发送电流值
+//底盘3508最大can发送电流值 16384-->20A
 #define MAX_MOTOR_CAN_CURRENT 16000.0f
 //press the key, chassis will swing
 //底盘摇摆按键
 #define SWING_KEY KEY_PRESSED_OFFSET_CTRL
-
-//press the key, chassis will rotate
-#define ROTATE_KEY KEY_PRESSED_OFFSET_B
-
 //chassi forward, back, left, right key
 //底盘前后左右控制按键
 #define CHASSIS_FRONT_KEY KEY_PRESSED_OFFSET_W
@@ -103,13 +100,22 @@
 
 //single chassis motor max speed
 //单个底盘电机最大速度
-#define MAX_WHEEL_SPEED 4.0f
+#define MAX_WHEEL_SPEED 8.0f
 //chassis forward or back max speed
 //底盘运动过程最大前进速度
-#define NORMAL_MAX_CHASSIS_SPEED_X 4.0f //PR test 2.0
+#define NORMAL_MAX_CHASSIS_SPEED_X 5.0f //PR test 2.0
+
+#define TURBO_SPEED 2.8f //全油门模式速度
+#define TURBO_ACC_STEP 0.029f //油门步进（加速度控制）
+#define TURBO_INT_SPEED 0.2f //初始加速值（降低加速迟滞）
+
+#define SLOW_SPEED 1.4f //低速 模式速度
+#define SLOW_ACC_STEP 0.015f //油门步进（加速度控制）
+#define SLOW_INT_SPEED 0.1f //初始加速值（降低加速迟	滞）
+#define SPIN_SPEED 6.0f //小陀螺速度
 //chassis left or right max speed
 //底盘运动过程最大平移速度
-#define NORMAL_MAX_CHASSIS_SPEED_Y 1.5f
+#define NORMAL_MAX_CHASSIS_SPEED_Y 3.0f
 
 #define CHASSIS_WZ_SET_SCALE 0.1f
 
@@ -122,18 +128,18 @@
 
 //chassis motor speed PID
 //底盘电机速度环PID
-#define M3505_MOTOR_SPEED_PID_KP 15000.0f
+#define M3505_MOTOR_SPEED_PID_KP 9000.0f
 #define M3505_MOTOR_SPEED_PID_KI 10.0f
-#define M3505_MOTOR_SPEED_PID_KD 0.0f
+#define M3505_MOTOR_SPEED_PID_KD 0.1f
 #define M3505_MOTOR_SPEED_PID_MAX_OUT MAX_MOTOR_CAN_CURRENT
 #define M3505_MOTOR_SPEED_PID_MAX_IOUT 2000.0f
 
 //chassis follow angle PID
 //底盘旋转跟随PID	
-#define CHASSIS_FOLLOW_GIMBAL_PID_KP 30.0f //40.0f  //Pr
+#define CHASSIS_FOLLOW_GIMBAL_PID_KP 18.0f //40.0f  //Pr
 #define CHASSIS_FOLLOW_GIMBAL_PID_KI 0.0f
 #define CHASSIS_FOLLOW_GIMBAL_PID_KD 0.0f
-#define CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT 6.0f
+#define CHASSIS_FOLLOW_GIMBAL_PID_MAX_OUT 10.0f
 #define CHASSIS_FOLLOW_GIMBAL_PID_MAX_IOUT 0.2f
 
 typedef enum

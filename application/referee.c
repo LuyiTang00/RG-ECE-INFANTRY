@@ -175,14 +175,14 @@ void get_chassis_power_and_buffer(fp32 *power, fp32 *buffer)
 
 }
 
-
 uint8_t get_robot_id(void)
 {
     return robot_state.robot_id;
 }
+
 uint8_t get_robot_level(void)
 {
-    return robot_state.robot_level;
+		return robot_state.robot_level;
 }
 
 void get_shoot_heat0_limit_and_heat0(uint16_t *heat0_limit, uint16_t *heat0)

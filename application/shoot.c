@@ -30,6 +30,7 @@
 #include "gimbal_behaviour.h"
 #include "detect_task.h"
 #include "pid.h"
+#include "referee_usart_task.h"
 
 #define shoot_fric1_on(pwm) fric1_on((pwm)) //摩擦轮1pwm宏定义
 #define shoot_fric2_on(pwm) fric2_on((pwm)) //摩擦轮2pwm宏定义
@@ -75,6 +76,11 @@ static void shoot_bullet_control(void);
 shoot_control_t shoot_control;          //射击数据
 
 
+int16_t temp_rpm_left;
+int16_t temp_rpm_right;
+
+fp32 temp_speed_setALL = 12.5;
+
 /**
   * @brief          射击初始化，初始化PID，遥控器指针，电机指针
   * @param[in]      void
@@ -105,6 +111,30 @@ void shoot_init(void)
     shoot_control.speed = 0.0f;
     shoot_control.speed_set = 0.0f;
     shoot_control.key_time = 0;
+		
+		/*12-28-2021 SZL add for 
+		infantry pid shooter friction wheel LEFT and RIGHT
+		Everything above keep the same as the old PWM shooter
+		*/
+		//初始化基本射击参数
+		shoot_control.currentLeft_speed_set = 0;
+		shoot_control.currentRight_speed_set = 0;
+		shoot_control.currentLIM_shoot_speed = 0;
+		
+		
+		//LEFT friction PID const init
+		static const fp32 Left_friction_speed_pid[3] = {M3508_LEFT_FRICTION_PID_KP, M3508_LEFT_FRICTION_PID_KI, M3508_LEFT_FRICTION_PID_KD};
+		//RIGHT friction PID const init
+		static const fp32 Right_friction_speed_pid[3] = {M3508_RIGHT_FRICTION_PID_KP, M3508_RIGHT_FRICTION_PID_KI, M3508_RIGHT_FRICTION_PID_KD};
+
+		//电机指针 M3508屁股 左右摩擦轮
+		shoot_control.left_friction_motor_measure = get_left_friction_motor_measure_point();
+		shoot_control.right_friction_motor_measure = get_right_friction_motor_measure_point();
+		
+		//初始化PID
+		PID_init(&shoot_control.left_fric_motor_pid, PID_POSITION, Left_friction_speed_pid, M3508_LEFT_FRICTION_PID_MAX_OUT, M3508_LEFT_FRICTION_PID_MAX_IOUT);
+		PID_init(&shoot_control.right_fric_motor_pid, PID_POSITION, Right_friction_speed_pid, M3508_RIGHT_FRICTION_PID_MAX_OUT, M3508_RIGHT_FRICTION_PID_MAX_IOUT);
+	
 }
 
 /**
@@ -114,13 +144,34 @@ void shoot_init(void)
   */
 
 //===============================================
+uint8_t robot_Level = 0;
 
 int16_t shoot_control_loop(void)
 {
 
     shoot_set_mode();        //设置状态机
     shoot_feedback_update(); //更新数据
-	
+	  robot_Level = get_robot_level();
+
+	 	 if(robot_Level == 0){
+	  shoot_control.fric1_ramp.max_value = FRIC_LV1;
+    shoot_control.fric2_ramp.max_value = FRIC_LV1;
+	 }else if(robot_Level == 1){
+	  shoot_control.fric1_ramp.max_value = FRIC_LV1;
+    shoot_control.fric2_ramp.max_value = FRIC_LV1;
+	 }else if(robot_Level == 2){
+	 	shoot_control.fric1_ramp.max_value = FRIC_LV2;
+    shoot_control.fric2_ramp.max_value = FRIC_LV2;
+	 }else if(robot_Level == 3){
+	 	shoot_control.fric1_ramp.max_value = FRIC_LV3;
+    shoot_control.fric2_ramp.max_value = FRIC_LV3;
+	 }else{
+	 	shoot_control.fric1_ramp.max_value = FRIC_LV1;
+    shoot_control.fric2_ramp.max_value = FRIC_LV1;
+	 }
+	 
+	 //------------------修改等级判断
+	 shoot_control.currentLIM_shoot_speed = temp_speed_setALL;
 	
     if (shoot_control.shoot_mode == SHOOT_STOP)
     {
@@ -177,6 +228,15 @@ int16_t shoot_control_loop(void)
         //摩擦轮需要一个个斜波开启，不能同时直接开启，否则可能电机不转
         ramp_calc(&shoot_control.fric1_ramp, -SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, -SHOOT_FRIC_PWM_ADD_VALUE);
+			/*
+			shoot_control.fric_pwm1 = FRIC_OFF;//no need for ramp_calc now
+			shoot_control.fric_pwm2 = FRIC_OFF;
+			为什么没有这个
+			*/
+			
+			//SZL添加, 也可以使用斜波开启 低通滤波
+			shoot_control.currentLeft_speed_set = M3508_FRIC_STOP;
+			shoot_control.currentRight_speed_set = M3508_FRIC_STOP;
     }
     else
     {
@@ -191,15 +251,31 @@ int16_t shoot_control_loop(void)
         //摩擦轮需要一个个斜波开启，不能同时直接开启，否则可能电机不转
         ramp_calc(&shoot_control.fric1_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
         ramp_calc(&shoot_control.fric2_ramp, SHOOT_FRIC_PWM_ADD_VALUE);
+				
+				//SZL添加, 也可以使用斜波开启 低通滤波
+				shoot_control.currentLeft_speed_set = shoot_control.currentLIM_shoot_speed;
+				shoot_control.currentRight_speed_set = shoot_control.currentLIM_shoot_speed;
 
     }
 
-    shoot_control.fric_pwm1 = (uint16_t)(shoot_control.fric1_ramp.out);
+    shoot_control.fric_pwm1 = (uint16_t)(shoot_control.fric1_ramp.out + 19);
     shoot_control.fric_pwm2 = (uint16_t)(shoot_control.fric2_ramp.out);
+		
+		
+		
     shoot_fric1_on(shoot_control.fric_pwm1);
     shoot_fric2_on(shoot_control.fric_pwm2);
+		
+		//vTaskDelay(5);
+		
+		//M3508_fric_wheel_spin_control(-tempLeft_speed_set, tempRight_speed_set);
+		M3508_fric_wheel_spin_control(-shoot_control.currentLeft_speed_set, shoot_control.currentRight_speed_set);
+		
     return shoot_control.given_current;
 }
+
+
+
 
 /**
   * @brief          射击状态机设置，遥控器上拨一次开启，再上拨关闭，下拨1次发射1颗，一直处在下，则持续发射，用于3min准备时间清理子弹
@@ -246,7 +322,7 @@ static void shoot_set_mode(void)
     else if(shoot_control.shoot_mode == SHOOT_READY)
     {
         //下拨一次或者鼠标按下一次，进入射击状态
-        if ((switch_is_down(shoot_control.shoot_rc->rc.s[SHOOT_RC_MODE_CHANNEL]) && !switch_is_down(last_s)) || (shoot_control.press_l && shoot_control.last_press_l == 0) || (shoot_control.press_r && shoot_control.last_press_r == 0))
+        if ((switch_is_down(shoot_control.shoot_rc->rc.s[SHOOT_RC_MODE_CHANNEL]) && !switch_is_down(last_s)) || (shoot_control.press_l && shoot_control.last_press_l == 0))
         {
             shoot_control.shoot_mode = SHOOT_BULLET;
         }
@@ -269,13 +345,30 @@ static void shoot_set_mode(void)
             shoot_control.shoot_mode = SHOOT_BULLET;
         }
     }
-    
-
+/*
+    if(shoot_control.shoot_mode > SHOOT_READY_FRIC){ //自动开火指令处理
+		   if(shootCommand == 0xff){
+			 shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
+			 }else if(shootCommand == 0x00){
+			 shoot_control.shoot_mode = SHOOT_READY_BULLET;
+			 }
+		}
+	*/
+		extern uint8_t autoAimFlag; //自动瞄准开关状态 0关 1自动瞄准
+		
+		if(shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_X) //press X to turn on auto aim
+		{
+			autoAimFlag = 1;
+		}else if(shoot_control.shoot_rc->key.v & KEY_PRESSED_OFFSET_C) // press C to turn off auto aim
+		{
+		  autoAimFlag = 0;
+		}
+		
 
     if(shoot_control.shoot_mode > SHOOT_READY_FRIC)
     {
         //鼠标长按一直进入射击状态 保持连发
-        if ((shoot_control.press_l_time == PRESS_LONG_TIME) || (shoot_control.press_r_time == PRESS_LONG_TIME) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
+        if (((shootCommand == 0xff) && (autoAimFlag == 1))|| (shoot_control.press_r ) || (shoot_control.rc_s_time == RC_S_LONG_TIME))
         {
             shoot_control.shoot_mode = SHOOT_CONTINUE_BULLET;
         }
@@ -303,6 +396,7 @@ static void shoot_set_mode(void)
 }
 /**
   * @brief          射击数据更新
+	shoot motor 是拨弹电机
   * @param[in]      void
   * @retval         void
   */
@@ -388,27 +482,14 @@ static void shoot_feedback_update(void)
     {
         shoot_control.rc_s_time = 0;
     }
-
-    //鼠标右键按下加速摩擦轮，使得左键低速射击， 右键高速射击
-    static uint16_t up_time = 0;
-    if (shoot_control.press_r)
-    {
-        up_time = UP_ADD_TIME;
-    }
-
-    if (up_time > 0)
-    {
-        shoot_control.fric1_ramp.max_value = FRIC_UP;
-        shoot_control.fric2_ramp.max_value = FRIC_UP;
-        up_time--;
-    }
-    else
-    {
-        shoot_control.fric1_ramp.max_value = FRIC_DOWN;
-        shoot_control.fric2_ramp.max_value = FRIC_DOWN;
-    }
-
-
+		//12-30-2021 SZL 添加 friction 电机 反馈 数据
+		shoot_control.left_fricMotor.fricW_speed = M3508_FRIC_MOTOR_RPM_TO_LINEAR_VETOR_SEN * shoot_control.left_friction_motor_measure->speed_rpm;
+		shoot_control.right_fricMotor.fricW_speed = M3508_FRIC_MOTOR_RPM_TO_LINEAR_VETOR_SEN * shoot_control.right_friction_motor_measure->speed_rpm;
+		
+		//Added for J-scope debug
+		temp_rpm_right = shoot_control.right_friction_motor_measure->speed_rpm;
+		temp_rpm_left = shoot_control.left_friction_motor_measure->speed_rpm;
+		
 }
 
 static void trigger_motor_turn_back(void)

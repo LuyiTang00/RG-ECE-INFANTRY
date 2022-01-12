@@ -24,6 +24,13 @@
 #include "cmsis_os.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+/*
+SZL-1-6-2021 For
+CAN1 FIFO 0 中断向量的 callback 用户函数
+CAN2 FIFO 1 中断向量的 callback 用户函数
+Declared in CAN_receive.h
+*/
+#include "CAN_receive.h" 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,7 +60,11 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+extern void userCallback_CAN1_FIFO0_IT(CAN_HandleTypeDef *hcan);
 
+extern void userCallback_CAN2_FIFO1_IT(CAN_HandleTypeDef *hcan);
+
+extern void xPortSysTickHandler(void);
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -61,8 +72,10 @@ extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 extern DMA_HandleTypeDef hdma_usart1_tx;
+extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart6_rx;
 extern DMA_HandleTypeDef hdma_usart6_tx;
+extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -165,7 +178,14 @@ void SysTick_Handler(void)
 
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
-  osSystickHandler();
+#if (INCLUDE_xTaskGetSchedulerState == 1 )
+  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+  {
+#endif /* INCLUDE_xTaskGetSchedulerState */
+  xPortSysTickHandler();
+#if (INCLUDE_xTaskGetSchedulerState == 1 )
+  }
+#endif /* INCLUDE_xTaskGetSchedulerState */
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */
@@ -226,9 +246,9 @@ void EXTI4_IRQHandler(void)
 void CAN1_RX0_IRQHandler(void)
 {
   /* USER CODE BEGIN CAN1_RX0_IRQn 0 */
-
+	userCallback_CAN1_FIFO0_IT(&hcan1);
   /* USER CODE END CAN1_RX0_IRQn 0 */
-  HAL_CAN_IRQHandler(&hcan1);
+  //HAL_CAN_IRQHandler(&hcan1);
   /* USER CODE BEGIN CAN1_RX0_IRQn 1 */
 
   /* USER CODE END CAN1_RX0_IRQn 1 */
@@ -249,6 +269,20 @@ void EXTI9_5_IRQHandler(void)
 }
 
 /**
+  * @brief This function handles USART1 global interrupt.
+  */
+//void USART1_IRQHandler(void)
+//{
+//  /* USER CODE BEGIN USART1_IRQn 0 */
+
+//  /* USER CODE END USART1_IRQn 0 */
+//  HAL_UART_IRQHandler(&huart1);
+//  /* USER CODE BEGIN USART1_IRQn 1 */
+
+//  /* USER CODE END USART1_IRQn 1 */
+//}
+
+/**
   * @brief This function handles DMA2 stream1 global interrupt.
   */
 void DMA2_Stream1_IRQHandler(void)
@@ -263,17 +297,17 @@ void DMA2_Stream1_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles CAN2 RX0 interrupts.
+  * @brief This function handles CAN2 RX1 interrupt.
   */
-void CAN2_RX0_IRQHandler(void)
+void CAN2_RX1_IRQHandler(void)
 {
-  /* USER CODE BEGIN CAN2_RX0_IRQn 0 */
+  /* USER CODE BEGIN CAN2_RX1_IRQn 0 */
+	userCallback_CAN2_FIFO1_IT(&hcan2);
+  /* USER CODE END CAN2_RX1_IRQn 0 */
+  //HAL_CAN_IRQHandler(&hcan2);
+  /* USER CODE BEGIN CAN2_RX1_IRQn 1 */
 
-  /* USER CODE END CAN2_RX0_IRQn 0 */
-  HAL_CAN_IRQHandler(&hcan2);
-  /* USER CODE BEGIN CAN2_RX0_IRQn 1 */
-
-  /* USER CODE END CAN2_RX0_IRQn 1 */
+  /* USER CODE END CAN2_RX1_IRQn 1 */
 }
 
 /**
@@ -288,6 +322,20 @@ void OTG_FS_IRQHandler(void)
   /* USER CODE BEGIN OTG_FS_IRQn 1 */
 
   /* USER CODE END OTG_FS_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA2 stream5 global interrupt.
+  */
+void DMA2_Stream5_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA2_Stream5_IRQn 0 */
+
+  /* USER CODE END DMA2_Stream5_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart1_rx);
+  /* USER CODE BEGIN DMA2_Stream5_IRQn 1 */
+
+  /* USER CODE END DMA2_Stream5_IRQn 1 */
 }
 
 /**
@@ -319,6 +367,13 @@ void DMA2_Stream7_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-
+//void CAN2_RX1_IRQHandler(void)
+//{
+//	HAL_CAN_IRQHandler(&hcan2);
+//}
+//void CAN1_RX1_IRQHandler(void)
+//{
+//	HAL_CAN_IRQHandler(&hcan2);
+//}
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
